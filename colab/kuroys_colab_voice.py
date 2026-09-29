@@ -26,6 +26,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import voice_cleanup  # noqa: E402  (chép nguyên từ tool, xem build_tools/sync_colab_files.py)
 
 PACKAGE_VERSION = 1
+# Bản 2: mỗi phần có giọng + cài đặt riêng (gửi cả hàng đợi từ tool).
+SUPPORTED_PACKAGE_VERSIONS = (1, 2)
 RESULT_VERSION = 1
 MODEL_RATE = 24000
 GENERATION_CHUNK_CHARACTERS = 600
@@ -96,14 +98,20 @@ def load_package(package_zip, folder: Path) -> Dict[str, object]:
             if "job.json" not in names or "voice.pt" not in names:
                 raise ValueError("Gói thiếu job.json hoặc voice.pt. Hãy tạo lại gói bằng nút “Tạo voice bằng Colab”.")
             job = json.loads(archive.read("job.json").decode("utf-8"))
-            (folder / "voice.pt").write_bytes(archive.read("voice.pt"))
+            if int(job.get("kuroys_colab") or 0) not in SUPPORTED_PACKAGE_VERSIONS:
+                raise ValueError("Gói được tạo bằng phiên bản tool khác notebook này. "
+                                 "Hãy mở notebook bằng nút “Mở trang Colab” trong tool.")
+            voices = list(job.get("voices") or {"voice.pt": job.get("voice_name")})
+            for name in voices:
+                if Path(name).name != name or not name.endswith(".pt") or name not in names:
+                    raise ValueError(f"Gói thiếu hồ sơ giọng {name}. Hãy tạo lại gói trong tool.")
+                (folder / name).write_bytes(archive.read(name))
     except zipfile.BadZipFile:
         raise ValueError("File tải lên không phải gói .zip hợp lệ của KuroYs.") from None
-    if int(job.get("kuroys_colab") or 0) != PACKAGE_VERSION:
-        raise ValueError("Gói được tạo bằng phiên bản tool khác notebook này. Hãy mở notebook bằng nút trong tool.")
     if not job.get("parts"):
         raise ValueError("Gói không có phần kịch bản nào.")
     job["voice_path"] = str(folder / "voice.pt")
+    job["voice_folder"] = str(folder)
     return job
 
 
@@ -207,7 +215,7 @@ def run(package_zip, work_dir: Optional[str] = None, *, cache_dir: Optional[str]
     model, torch, device = model_bundle or load_model(cache_dir, device, progress)
     from omnivoice import VoiceClonePrompt
 
-    prompt = VoiceClonePrompt.load(job["voice_path"])
+    prompts: Dict[str, object] = {}
     rate = int(job.get("output_sample_rate") or 48000)
     output_format = "wav" if str(job.get("output_format")) == "wav" else "mp3"
     out = work / "output"
@@ -216,16 +224,24 @@ def run(package_zip, work_dir: Optional[str] = None, *, cache_dir: Optional[str]
     for number, part in enumerate(parts, start=1):
         progress(f"Phần {number}/{len(parts)} ({_number(len(str(part['text'])))} ký tự)...")
         part_started = time.time()
-        audio = generate_part(model, torch, prompt, str(part["text"]), language=str(job.get("language") or ""),
-                              speed=float(job.get("speed") or 1.0), steps=int(job.get("steps") or 16),
-                              volume_percent=float(job.get("volume_percent") or 100.0), progress=progress)
+        # Gói bản 2 (hàng đợi): mỗi phần có giọng + cài đặt riêng; thiếu thì lấy cài đặt chung của gói.
+        voice = str(part.get("voice") or "voice.pt")
+        if voice not in prompts:
+            prompts[voice] = VoiceClonePrompt.load(str(Path(job["voice_folder"]) / voice))
+        part_format = "wav" if str(part.get("output_format") or output_format) == "wav" else "mp3"
+        audio = generate_part(model, torch, prompts[voice], str(part["text"]), language=str(job.get("language") or ""),
+                              speed=float(part.get("speed") or job.get("speed") or 1.0),
+                              steps=int(part.get("steps") or job.get("steps") or 16),
+                              volume_percent=float(part.get("volume_percent") or job.get("volume_percent") or 100.0),
+                              progress=progress)
         audio = resample(torch, audio, MODEL_RATE, rate)
-        write_audio(out / str(part["file"]), audio, rate, output_format)
+        write_audio(out / str(part["file"]), audio, rate, part_format)
         arrays.append(audio)
         duration = len(audio) / float(rate)
         finished.append({"index": int(part.get("index") or number), "file": str(part["file"]),
                          "duration_seconds": round(duration, 3), "characters": len(str(part["text"])),
-                         "text": str(part["text"]), "source_text": str(part.get("source_text") or part["text"])})
+                         "text": str(part["text"]), "source_text": str(part.get("source_text") or part["text"]),
+                         "queue_item_id": str(part.get("queue_item_id") or "")})
         progress(f"   xong: {duration:.1f} giây voice trong {time.time() - part_started:.0f} giây")
     full = merge_parts(arrays, rate, int(job.get("pause_ms") or 0))
     full_name = str(job.get("full_file") or f"{job['project_name']}_FULL.mp3")
