@@ -1,0 +1,213 @@
+{
+  "asr": {
+    "kotoba": {
+      "files": {
+        ".gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+        "README.md": "fd4f03ca983fa57457f5ebe1a3c4398c928cd57bcf538a9dd76b68eb5302545b",
+        "added_tokens.json": "3c51f66c4c21f9e126970078f11ae77a78c74aee8df606ee9daba86e467108e0",
+        "config.json": "66b40e29d260962060cc9b839e4192fda6f341422660a6812aaccb3c303158dd",
+        "generation_config.json": "fd2bcde142641ab2c76d3dda3e662b42b8b930567c841cb26acd7989692dfe2f",
+        "kotoba_whisper.py": "8a2330fb65f6bc45300c68c9d28e1150abc698ad942906a0228154e4f8dd5eb2",
+        "merges.txt": "2df2990a395e35e8dfbc7511e08c12d56018d8d04691e0133e5d63b21e154dc6",
+        "model.safetensors": "e0ef3e7b379515f0c35d0e7885638ddef0fa9f5c8e3e3f88cbc6da9b39edd1e9",
+        "normalizer.json": "bf1c507dc8724ca9cf9903640dacfb69dae2f00edee4f21ceba106a7392f26dd",
+        "pipeline/kotoba_whisper.py": "8a2330fb65f6bc45300c68c9d28e1150abc698ad942906a0228154e4f8dd5eb2",
+        "pipeline/push_pipeline.py": "02b6903b5ca8df3ac02c26aece1cc8747a8d370ef995f68d3e66d457607ef5ec",
+        "pipeline/test_pipeline.py": "a49aa07b3c771b1f7ec381ee8b1fd7a4eb86f1f3f5ea8006725d05886901f0bc",
+        "preprocessor_config.json": "7ccc62c6f2765af1f3b46c00c9b5894426835a05021c8b9c01eecb6dfb542711",
+        "special_tokens_map.json": "baea4ea09372eb4fca86b4e4346139fd73cb807d5087e9de0948e971739c3e74",
+        "tokenizer.json": "f70c9740a90657b489cf05b0fa0605c1d497db542f11a70a8cc80a025c94c7d8",
+        "tokenizer_config.json": "c86c7398ba7f81f784569ea0ae165e252c4a006acc56906f04e5ee3300cf043e",
+        "vocab.json": "6788c80b082e9b0d1393147d3a3e62ba19285ac0c82ace8e5ef00f37ead58971"
+      },
+      "model_id": "kotoba-tech/kotoba-whisper-v2.1",
+      "revision": "57a9d8ab771a0124706b67d22509bedd07c36187"
+    },
+    "library_versions": {
+      "numpy": "2.4.6",
+      "onnxruntime": "1.29.0",
+      "punctuators": "0.0.5",
+      "soundfile": "0.14.0",
+      "stable-ts": "2.16.0",
+      "torch": "2.5.1+cu121",
+      "torchaudio": "2.5.1+cu121",
+      "transformers": "5.17.0"
+    },
+    "python": "3.11.9",
+    "venv": {
+      "index_urls": [
+        "https://download.pytorch.org/whl/cu121"
+      ],
+      "requirements": [
+        "torch==2.5.1+cu121",
+        "torchaudio==2.5.1+cu121",
+        "numpy==2.4.6",
+        "soundfile==0.14.0",
+        "transformers==5.17.0",
+        "tokenizers==0.23.2",
+        "accelerate==1.15.0",
+        "safetensors==0.8.0",
+        "huggingface_hub==1.31.0",
+        "hf-xet==1.6.0",
+        "stable-ts==2.16.0",
+        "punctuators==0.0.5",
+        "onnxruntime==1.29.0",
+        "openai-whisper==20231117",
+        "annotated-doc==0.0.5",
+        "antlr4-python3-runtime==4.9.3",
+        "anyio==4.15.1",
+        "certifi==2026.7.22",
+        "cffi==2.1.1",
+        "charset-normalizer==3.5.1",
+        "click==8.5.0",
+        "colorama==0.4.6",
+        "filelock==3.32.3",
+        "flatbuffers==25.12.19",
+        "fsspec==2026.7.0",
+        "h11==0.16.0",
+        "httpcore==1.0.9",
+        "httpx==0.28.1",
+        "idna==3.19",
+        "Jinja2==3.1.6",
+        "llvmlite==0.49.0",
+        "markdown-it-py==4.2.0",
+        "MarkupSafe==3.0.3",
+        "mdurl==0.1.2",
+        "more-itertools==11.1.0",
+        "mpmath==1.3.0",
+        "networkx==3.6.1",
+        "numba==0.67.0",
+        "omegaconf==2.3.1",
+        "packaging==26.3",
+        "protobuf==7.36.1",
+        "psutil==7.2.2",
+        "pycparser==3.0",
+        "Pygments==2.21.0",
+        "PyYAML==6.0.3",
+        "regex==2026.9.10",
+        "requests==2.34.2",
+        "rich==15.0.0",
+        "sentencepiece==0.2.2",
+        "shellingham==1.5.4",
+        "sympy==1.13.1",
+        "tiktoken==0.14.0",
+        "tqdm==4.70.0",
+        "typer==0.27.2",
+        "typing_extensions==4.16.0",
+        "urllib3==2.7.0"
+      ]
+    }
+  },
+  "python": "3.11.9",
+  "schema_version": 1,
+  "train": {
+    "assets": [
+      {
+        "cache_only": false,
+        "cache_reference": null,
+        "id": "jp_extra_base_generator",
+        "remote_path": "G_0.safetensors",
+        "repository": "litagin/Style-Bert-VITS2-2.0-base-JP-Extra",
+        "revision": "a731761009f3c96d104487be6ad332bf1bb5a3a5",
+        "sha256": "90c26f3dc5f6678a695c5308fdf9441fb5be15cdcb87f27e811084f25e87c92d",
+        "source_relative_path": "pretrained_jp_extra/G_0.safetensors"
+      },
+      {
+        "cache_only": false,
+        "cache_reference": null,
+        "id": "jp_extra_base_discriminator",
+        "remote_path": "D_0.safetensors",
+        "repository": "litagin/Style-Bert-VITS2-2.0-base-JP-Extra",
+        "revision": "a731761009f3c96d104487be6ad332bf1bb5a3a5",
+        "sha256": "2d8de5a29a00c4bbe682d27cd882b2837ac9a16cc9025d7be76b67954b743ef3",
+        "source_relative_path": "pretrained_jp_extra/D_0.safetensors"
+      },
+      {
+        "cache_only": false,
+        "cache_reference": null,
+        "id": "jp_extra_base_wavlm_discriminator",
+        "remote_path": "WD_0.safetensors",
+        "repository": "litagin/Style-Bert-VITS2-2.0-base-JP-Extra",
+        "revision": "a731761009f3c96d104487be6ad332bf1bb5a3a5",
+        "sha256": "ba4a0fb0d611f05ad2656c8cfe8282d53f42c61aeeb5aafcd1daf5c05ece6523",
+        "source_relative_path": "pretrained_jp_extra/WD_0.safetensors"
+      },
+      {
+        "cache_only": false,
+        "cache_reference": null,
+        "id": "japanese_bert_weights",
+        "remote_path": "pytorch_model.bin",
+        "repository": "ku-nlp/deberta-v2-large-japanese-char-wwm",
+        "revision": "547b0e8b044fba3f9b84d0ab9f990440bd130c8b",
+        "sha256": "bf0dab8ad87bd7c22e85ec71e04f2240804fda6d33196157d6b5923af6ea1201",
+        "source_relative_path": "bert/deberta-v2-large-japanese-char-wwm/pytorch_model.bin"
+      },
+      {
+        "cache_only": false,
+        "cache_reference": null,
+        "id": "wavlm_base_plus_weights",
+        "remote_path": "pytorch_model.bin",
+        "repository": "microsoft/wavlm-base-plus",
+        "revision": "4c66d4806a428f2e922ccfa1a962776e232d487b",
+        "sha256": "3bb273a6ace99408b50cfc81afdbb7ef2de02da2eab0234e18db608ce692fe51",
+        "source_relative_path": "slm/wavlm-base-plus/pytorch_model.bin"
+      },
+      {
+        "cache_only": true,
+        "cache_reference": "main",
+        "id": "pyannote_wespeaker_weights",
+        "remote_path": "pytorch_model.bin",
+        "repository": "pyannote/wespeaker-voxceleb-resnet34-LM",
+        "revision": "837717ddb9ff5507820346191109dc79c958d614",
+        "sha256": "366edf44f4c80889a3eb7a9d7bdf02c4aede3127f7dd15e274dcdb826b143c56",
+        "source_relative_path": null
+      },
+      {
+        "cache_only": true,
+        "cache_reference": "main",
+        "id": "pyannote_wespeaker_config",
+        "remote_path": "config.yaml",
+        "repository": "pyannote/wespeaker-voxceleb-resnet34-LM",
+        "revision": "837717ddb9ff5507820346191109dc79c958d614",
+        "sha256": "6ff718cff3c5d7a4493537ab7f4780cad7e3d32453f59099b4076aefa07a9974",
+        "source_relative_path": null
+      }
+    ],
+    "entrypoint": "train_ms_jp_extra.py",
+    "python": "3.11.9",
+    "source": {
+      "commit": "250e83e904395c99ffce96ebb6aad4b8cb51f7d1",
+      "repository": "https://github.com/litagin02/Style-Bert-VITS2.git",
+      "tag": "2.5.0"
+    },
+    "venv": {
+      "index_urls": [
+        "https://download.pytorch.org/whl/cu121"
+      ],
+      "requirements": [
+        "torch==2.5.1+cu121",
+        "torchaudio==2.5.1+cu121",
+        "numpy==1.26.4",
+        "transformers==4.41.2",
+        "tokenizers==0.19.1",
+        "safetensors==0.4.3",
+        "huggingface_hub==0.23.3",
+        "PyYAML==6.0.3",
+        "soundfile==0.14.0",
+        "soxr==1.0.0",
+        "librosa==0.9.2",
+        "pyloudnorm==0.1.1",
+        "tensorboard==2.17.1",
+        "tqdm==4.70.0",
+        "loguru==0.7.3",
+        "num2words==0.5.14",
+        "pyopenjtalk-dict==0.3.4.dev2",
+        "pyworld-prebuilt==0.3.6.post1",
+        "numba==0.67.0",
+        "pydantic==2.13.5",
+        "gradio==4.36.1",
+        "pyannote.audio==3.1.1"
+      ]
+    }
+  }
+}
