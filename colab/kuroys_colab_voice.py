@@ -32,6 +32,12 @@ RESULT_VERSION = 1
 MODEL_RATE = 24000
 GENERATION_CHUNK_CHARACTERS = 600
 CHUNK_PAUSE_SECONDS = 0.08
+# Không có GPU mà gói dài hơn mức này thì dừng ngay (khách tích "chạy bằng CPU" mới chạy): chạy CPU mất nhiều giờ,
+# Colab miễn phí thường ngắt trước khi xong và khách tưởng tool treo.
+CPU_MAX_CHARACTERS = 3000
+# Ước lượng để báo khách: ~15 ký tự / giây giọng đọc; T4 đo thật 25 s giọng trong 9,6 s (≈ 0,4).
+CHARACTERS_PER_VOICE_SECOND = 15.0
+T4_SECONDS_PER_VOICE_SECOND = 0.4
 
 Progress = Callable[[str], None]
 
@@ -39,6 +45,57 @@ Progress = Callable[[str], None]
 def _number(value: int) -> str:
     """12345 → "12.345" (kiểu Việt), chỉ đổi dấu trong con số."""
     return f"{int(value):,}".replace(",", ".")
+
+
+def _duration(seconds: float) -> str:
+    """Thời gian dễ đọc: "45 giây", "12 phút", "2 giờ 05 phút"."""
+    seconds = max(0, int(round(seconds)))
+    if seconds < 60:
+        return f"{seconds} giây"
+    minutes = int(round(seconds / 60.0))
+    if minutes < 60:
+        return f"{minutes} phút"
+    return f"{minutes // 60} giờ {minutes % 60:02d} phút"
+
+
+def _package_characters(job: Dict[str, object]) -> int:
+    return sum(len(str(part.get("text") or "")) for part in job.get("parts") or [])
+
+
+def cpu_warning(total_characters: int, has_gpu: bool, allow_cpu: bool = False) -> str:
+    """Câu báo dừng khi không có GPU mà gói dài; "" = được chạy."""
+    if has_gpu or allow_cpu or int(total_characters) <= CPU_MAX_CHARACTERS:
+        return ""
+    voice_seconds = int(total_characters) / CHARACTERS_PER_VOICE_SECOND
+    return (
+        f"❌ Colab CHƯA CÓ GPU nên chưa tạo voice.\n"
+        f"Gói này {_number(total_characters)} ký tự ≈ {_duration(voice_seconds)} giọng đọc. Có GPU T4 chỉ mất khoảng "
+        f"{_duration(voice_seconds * T4_SECONDS_PER_VOICE_SECOND)}; chạy bằng CPU mất NHIỀU GIỜ và Colab thường tự "
+        f"ngắt trước khi xong.\n\n"
+        f"Cách bật GPU: menu Thời gian chạy (Runtime) → Thay đổi loại thời gian chạy (Change runtime type) → T4 GPU → "
+        f"Lưu (Save), rồi Thời gian chạy → Chạy tất cả (Run all) và chọn lại file .zip ở ô 4.\n"
+        f"Nếu Colab báo hết GPU: tài khoản Google này đã dùng hết lượt miễn phí, thử lại sau vài giờ hoặc dùng tài "
+        f"khoản Google khác.\n"
+        f"Vẫn muốn chạy bằng CPU: tích ô “chay_bang_cpu” ở ô 5 rồi chạy lại ô 5 (nên chia kịch bản thành gói dưới "
+        f"{_number(CPU_MAX_CHARACTERS)} ký tự)."
+    )
+
+
+def has_gpu() -> bool:
+    try:
+        import torch
+
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
+
+
+def check_gpu(package_zip, allow_cpu: bool = False, work_dir: Optional[str] = None) -> str:
+    """Gọi ở ô 5 TRƯỚC khi nạp model: "" = chạy được, còn lại là câu báo dừng (không có GPU, gói dài)."""
+    if has_gpu() or allow_cpu:
+        return ""
+    job = load_package(package_zip, Path(work_dir or tempfile.mkdtemp(prefix="kuroys_check_")))
+    return cpu_warning(_package_characters(job), False, allow_cpu)
 
 
 # ------------------------------------------------------------------ chia khối (giống voice_engine_worker)
@@ -137,8 +194,11 @@ def load_model(cache_dir: Optional[str] = None, device: str = "auto", progress: 
 
 # ------------------------------------------------------------------ tạo voice
 def generate_part(model, torch, prompt, text: str, *, language: str = "", speed: float = 1.0,
-                  steps: int = 16, volume_percent: float = 100.0, progress: Progress = print):
-    """Một phần kịch bản → mảng float32 24 kHz đã làm sạch mép và hạ đỉnh."""
+                  steps: int = 16, volume_percent: float = 100.0, progress: Progress = print,
+                  on_chunk: Optional[Callable[[int, int, int, float], str]] = None):
+    """Một phần kịch bản → mảng float32 24 kHz đã làm sạch mép và hạ đỉnh.
+
+    ``on_chunk(khối, số khối, số ký tự, giây)`` gọi sau mỗi khối, trả thêm chữ in kèm dòng "xong" (vd. còn bao lâu)."""
     import numpy as np
 
     chunks = split_generation_text(text)
@@ -148,11 +208,15 @@ def generate_part(model, torch, prompt, text: str, *, language: str = "", speed:
     arrays = []
     for index, chunk in enumerate(chunks, start=1):
         progress(f"   khối {index}/{len(chunks)}: {chunk[:70]}")
+        chunk_started = time.time()
         with torch.inference_mode():
             audio_parts = model.generate(text=chunk, voice_clone_prompt=prompt, language=(language or None),
                                          num_step=int(steps), speed=float(speed))
         if not audio_parts:
             raise RuntimeError(f"Model không trả âm thanh ở khối {index}.")
+        seconds = time.time() - chunk_started
+        extra = on_chunk(index, len(chunks), len(chunk), seconds) if on_chunk else ""
+        progress(f"   ✓ xong khối {index}/{len(chunks)} sau {_duration(seconds)}" + (f" · {extra}" if extra else ""))
         for part in audio_parts:
             arrays.append(voice_cleanup.trim_generated_edges(np.asarray(part, dtype=np.float32).reshape(-1),
                                                              MODEL_RATE))
@@ -202,17 +266,39 @@ def merge_parts(arrays: List, rate: int, pause_ms: int):
     return voice_cleanup.limit_peak(np.concatenate(pieces))
 
 
+class NeedGPU(RuntimeError):
+    """Không có GPU mà gói dài (xem ``cpu_warning``)."""
+
+
 def run(package_zip, work_dir: Optional[str] = None, *, cache_dir: Optional[str] = None, device: str = "auto",
-        progress: Progress = print, model_bundle=None) -> str:
-    """Tạo toàn bộ voice của gói; trả về đường dẫn colab_result_<dự án>.zip."""
+        progress: Progress = print, model_bundle=None, allow_cpu: bool = False) -> str:
+    """Tạo toàn bộ voice của gói; trả về đường dẫn colab_result_<dự án>.zip.
+
+    Model chạy CPU mà gói dài hơn ``CPU_MAX_CHARACTERS`` → ``NeedGPU`` (trừ khi ``allow_cpu``)."""
     started = time.time()
     work = Path(work_dir or tempfile.mkdtemp(prefix="kuroys_colab_"))
     job = load_package(package_zip, work / "input")
     parts = list(job["parts"])
-    total_chars = sum(len(str(part.get("text") or "")) for part in parts)
+    total_chars = _package_characters(job)
     progress(f"Gói: dự án “{job['project_name']}”, giọng “{job.get('voice_name')}”, {len(parts)} phần, "
              f"{_number(total_chars)} ký tự.")
+    if model_bundle is None:
+        warning = cpu_warning(total_chars, device.startswith("cuda") or (device == "auto" and has_gpu()), allow_cpu)
+        if warning:
+            raise NeedGPU(warning)
     model, torch, device = model_bundle or load_model(cache_dir, device, progress)
+    warning = cpu_warning(total_chars, str(device).startswith("cuda"), allow_cpu)
+    if warning:
+        raise NeedGPU(warning)
+    done = {"chars": 0, "seconds": 0.0}
+
+    def on_chunk(index: int, count: int, characters: int, seconds: float) -> str:
+        """Tổng tiến độ cả gói + còn khoảng bao lâu (theo tốc độ các khối đã chạy)."""
+        done["chars"] += characters
+        done["seconds"] += seconds
+        percent = 100.0 * done["chars"] / max(1, total_chars)
+        left = max(0, total_chars - done["chars"]) * done["seconds"] / max(1, done["chars"])
+        return f"cả gói {percent:.0f}%, còn khoảng {_duration(left)}" if left >= 1 else f"cả gói {percent:.0f}%"
     from omnivoice import VoiceClonePrompt
 
     prompts: Dict[str, object] = {}
@@ -233,7 +319,7 @@ def run(package_zip, work_dir: Optional[str] = None, *, cache_dir: Optional[str]
                               speed=float(part.get("speed") or job.get("speed") or 1.0),
                               steps=int(part.get("steps") or job.get("steps") or 16),
                               volume_percent=float(part.get("volume_percent") or job.get("volume_percent") or 100.0),
-                              progress=progress)
+                              progress=progress, on_chunk=on_chunk)
         audio = resample(torch, audio, MODEL_RATE, rate)
         write_audio(out / str(part["file"]), audio, rate, part_format)
         arrays.append(audio)
